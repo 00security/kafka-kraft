@@ -4,29 +4,13 @@ metadata:
   name: kafka-kraft
 ---
 apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: kafka-pv-volume
-  labels:
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 10Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: '/mnt/data'
----
-apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: kafka-pv-claim
   namespace: kafka-kraft
 spec:
-  storageClassName: manual
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   resources:
     requests:
       storage: 3Gi
@@ -34,9 +18,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: kafka-svc
+  name: kafka
   labels:
-    app: kafka-app
+    app: kafka
   namespace: kafka-kraft
 spec:
   clusterIP: None
@@ -46,25 +30,25 @@ spec:
       protocol: TCP
       targetPort: 9092
   selector:
-    app: kafka-app
+    app: kafka
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: kafka
   labels:
-    app: kafka-app
+    app: kafka
   namespace: kafka-kraft
 spec:
-  serviceName: kafka-svc
+  serviceName: kafka
   replicas: 3
   selector:
     matchLabels:
-      app: kafka-app
+      app: kafka
   template:
     metadata:
       labels:
-        app: kafka-app
+        app: kafka
     spec:
       volumes:
         - name: kafka-storage
@@ -80,7 +64,7 @@ spec:
             - name: REPLICAS
               value: '3'
             - name: SERVICE
-              value: kafka-svc
+              value: kafka
             - name: NAMESPACE
               value: kafka-kraft
             - name: SHARE_DIR
