@@ -1,0 +1,9 @@
+apiVersion: v2
+description: Kafka Kraft
+name: kafka-kraft
+version: 0.1.0
+appVersion: 0.1.0
+maintainers:
+  - name: Remi Philippe
+    email: remi@doublezero.io
+    url: https://github.com/00security/kafka-kraft/helm

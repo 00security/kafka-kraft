@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Release.Name | quote }}
+  labels:
+  {{- template kafka-kraft.common_labels | nindent 4 -}}
+    app: {{ .Release.Name | quote }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  serviceName: kafka
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name | quote }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name | quote }}
+    spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      volumes:
+        {{- if or .Values.config .Values.existingConfigmap }}
+        - name: kafka-config
+          configMap:
+            name: {{ include "kafka.configmapName" . }}
+        {{- end }}
+        {{- if not .Values.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- else if .Values.persistence.existingClaim }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ printf "%s" (tpl .Values.persistence.existingClaim .) }}
+        {{- end }}
+        {{- if not .Values.logPersistence.enabled }}
+        - name: logs
+          emptyDir: {}
+        {{- else if .Values.logPersistence.existingClaim }}
+        - name: logs
+          persistentVolumeClaim:
+            claimName: {{ printf "%s" (tpl .Values.logPersistence.existingClaim .) }}
+    {{- end }}
+    volumeClaimTemplates:
+      - metadata:
+        name: quorum
+        {{- if .Values.quorum.annotations }}
+          annotations:
+          {{- if .Values.quorum.annotations }}
+          {{- .Values.quorum.annotations | nindent 8 }}
+          {{- end }}
+          {{- end }}
+        spec:
+          accessModes:
+          {{- range .Values.quorum.accessModes }}
+            - {{ . | quote }}
+          {{- end }}
+          resources:
+            requests:
+              storage: {{ .Values.quorum.size | quote }}
+      {{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+      - metadata:
+          name: data
+          {{- if .Values.persistence.annotations }}
+          annotations:
+          {{- if .Values.persistence.annotations }}
+          {{- .Values.persistence.annotations | nindent 8 }}
+          {{- end }}
+          {{- end }}
+        spec:
+          accessModes:
+          {{- range .Values.persistence.accessModes }}
+            - {{ . | quote }}
+          {{- end }}
+          resources:
+            requests:
+              storage: {{ .Values.persistence.size | quote }}
+      {{- end }}
+      {{- if and .Values.logPersistence.enabled (not .Values.logPersistence.existingClaim) }}
+      - metadata:
+        name: logs
+        {{- if .Values.logPersistence.annotations }}
+        {{- .Values.logPersistence.annotations | nindent 8 }}
+        {{- end }}
+        {{- end }}
+      spec:
+        accessModes:
+        {{- range .Values.logPersistence.accessModes }}
+          - {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.logPersistence.size | quote }}
+      {{- end }}
+      containers:
+        - name: kafka-container
+          image: "{{ .Values.image.registry }}/{{ .Values.image.name }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          ports:
+            - name: kafka-client
+              containerPort: {{ .Values.containerPorts.client }}
+            - name: kafka-internal
+              containerPort: {{ .Values.containerPorts.internal }}
+          env:
+            - name: REPLICAS
+              value: '3'
+            - name: SERVICE
+              value: kafka
+            - name: NAMESPACE
+              value: kafka-kraft
+            - name: SHARE_DIR
+              value: /mnt/kafka
+          volumeMounts:
+            - name: quorum
+              mountPath: {{ .Values.quorum.mountPath }}
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+            - name: logs
+              mountPath: {{ .Values.logPersistence.mountPath }}
+            {{- if or .Values.config .Values.existingConfigmap }}
+            - name: kafka-config
+              mountPath: {{ .Values.persistence.mountPath }}/config/server.properties
+              subPath: server.properties
+            {{- end }}
+
