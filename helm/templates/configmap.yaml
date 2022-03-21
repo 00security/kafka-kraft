@@ -1,0 +1,12 @@
+{{- if .Values.config != "" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-configuration" .Release.Name }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+  {{- template kafka-kraft.common_labels | nindent 4 -}}
+data:
+  server.properties: |-
+    {{ .Values.config | nindent 4 }}
+{{- end }}

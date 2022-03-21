@@ -1,0 +1,51 @@
+image:
+  registry: docker.io
+  repository: bitnami/kafka
+  tag: 3.1.0-debian-10-r49
+  pullPolicy: IfNotPresent
+serviceAccount:
+  name: kafka
+  annotations: {}
+service:
+  name: kafka
+  ports:
+    client: 9092
+    internal: 9093
+  annotations: {}
+replicaCount: 1
+minBrokerId: 0
+
+quorum:
+  existingClaim: ""
+  storageClass: ""
+  accessModes:
+    - ReadWriteMany
+  size: 3Gi
+  annotations: {}
+  selector: {}
+  mountPath: /data/quorum
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 8Gi
+  annotations: {}
+  selector: {}
+  mountPath: /data/kafka
+
+logPersistence:
+  enabled: false
+  existingClaim: ""
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 8Gi
+  annotations: {}
+  selector: {}
+  mountPath: /data/logs
+
+config: ""
+existingConfigmap: ""
